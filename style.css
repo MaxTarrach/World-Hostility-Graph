@@ -5,9 +5,10 @@ body {
 
 h1 {
   text-align: left;
-  margin-left: 60px;
+  margin: 0 0 clamp(16px, 3vw, 40px);
   font-family: 'Inter', sans-serif;
-  font-size: 64px;
+  font-size: clamp(1.75rem, 2.4vw, 3rem);
+  line-height: 1.1;
   color: #b5b5b5;
   z-index: 9999;
 
@@ -118,37 +119,94 @@ p {
     }
 
     #background {
-      position: absolute;
-      width: 100%;
-      height: 100%;
+      min-height: 100vh;
     }
 
     #flex-container {
 
       display: flex;
-      align-items: flex-start;
-      padding: 20px;
+      align-items: center;
+      gap: clamp(16px, 3vw, 48px);
+      min-height: 100vh;
+      box-sizing: border-box;
+      padding: 16px clamp(16px, 4vw, 60px);
+    }
+
+    #intro {
+      flex: 0 1 360px; /* Narrow text column; the graph gets the rest */
+      min-width: 0;
     }
 
     #description {
-
-      flex: 1; /* Let it take one-third of the space */
-      margin-top: 0px;
-      margin-left: 40px;
-      padding-right: 20px;
-      line-height: 2;
+      margin: 0;
+      font-size: clamp(0.875rem, 0.85vw, 1rem);
+      line-height: 1.7;
       color: #b5b5b5;
       font-family: 'Inconsolata', monospace;
-      font-weight: regular;
+      font-weight: 400;
+    }
+
+    #intro a {
+      color: #DDDDDD;
+    }
+
+    #legend {
+      list-style: none;
+      margin: 28px 0 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(2, max-content);
+      gap: 8px 24px;
+      font: 400 0.875rem 'Inconsolata', monospace;
+      color: #b5b5b5;
+    }
+
+    #legend li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #legend .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+    }
+
+    #intro .note {
+      margin: 20px 0 0;
+      font: 400 0.8125rem/1.6 'Inconsolata', monospace;
+      color: #8a8f8f;
     }
 
     #edgeBundlingContainer {
-          flex: 2; /* Let it take two-thirds of the space */
+      flex: 1 1 0;
+      min-width: 0;
+    }
+
+    #edgeBundling svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-height: calc(100vh - 32px);
+      margin: 0 auto;
+    }
+
+    /* Stack text above the graph on narrow screens */
+    @media (max-width: 900px) {
+      #flex-container {
+        flex-direction: column;
+        align-items: stretch;
+      }
     }
 
     #tooltip {
       display: none;
-      position: absolute;
+      position: fixed;
+      z-index: 10;
+      width: min(300px, calc(100vw - 16px));
+      box-sizing: border-box;
+      pointer-events: none;
       background-color: rgba(0, 0, 0, 0.8);
       color: white;
       padding: 10px;

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<meta charset="utf-8">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,9 +9,6 @@
   <link rel="stylesheet" type="text/css" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com"> 
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> 
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@800&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@600&family=Inter:wght@800&display=swap" rel="stylesheet">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@600&family=Inter:wght@400;800&display=swap" rel="stylesheet">
 
 
@@ -23,9 +20,9 @@
 
   <div id ="background">
 
-    <h1>World Hostility Graph</h1>
-
     <div id="flex-container">
+    <div id="intro">
+    <h1>World Hostility Graph</h1>
     <p id="description">Conflict is intricately woven throughout the fabric of the entire world.<br><br>
       Between 1816 and 2014, a minimum of 4726 conflicts have played 
       a pivotal role in shaping the world we inhabit today. 
@@ -33,9 +30,12 @@
       The shares of involved nations are unequally divided. 
       A few international superpowers are involved in a multitude of conflicts, 
       reaching from conflicts close to their own borders to conflicts at the other end of the world.
-      <br><br><br>
-      Data provided by the correlates of war project: <br><a href="https://correlatesofwar.org/data-sets/mids/">Data Source</a>
     </p>
+
+    <ul id="legend"></ul>
+    <p class="note">Bar length shows how many countries a nation has been in conflict with. Hover a country to see its links and statistics.</p>
+    <p class="note">Data: <a href="https://correlatesofwar.org/data-sets/mids/">Correlates of War Project</a> (MIDs)</p>
+    </div>
 
     <div id="edgeBundlingContainer" class="container">
 
@@ -85,19 +85,48 @@ var line = d3.radialLine()
     .angle(function(d) { return d.x / 180 * Math.PI; });
 
     
-// Window size dependend on Diagram size
+// Scale the drawing via viewBox so it fits whatever width its container has.
+// Extent = bar ring + label offset + room for the longest country label.
+var extent = innerRadius + 68 + 190;
 
 var svg = d3.select("#edgeBundling").append("svg")
-    .attr("width", window.innerWidth * (2/3))
-    .attr("height", window.innerHeight)
-    .append("g")
-    .attr("transform", "translate(" + window.innerWidth * 0.35 + "," + diameter / 2 + ")");
+    .attr("viewBox", [-extent, -extent, extent * 2, extent * 2].join(" "))
+    .attr("preserveAspectRatio", "xMidYMid meet")
+    .append("g");
 
 var link = svg.append("g").selectAll(".link"),
     node = svg.append("g").selectAll(".node"),
     linkRect = svg.append("g").selectAll(".link-rect");
 
     const csvFile = 'MIDB.csv';
+
+// Continent colours, shared by the bars, the tooltip and the legend
+var continents = [
+  {key: "africa",           label: "Africa",            color: "#03CEA4"},
+  {key: "asia",             label: "Asia",              color: "#E4FF1A"},
+  {key: "europe",           label: "Europe",            color: "#F96E46"},
+  {key: "northamerica",     label: "North America",     color: "#CB48B7"},
+  {key: "southamerica",     label: "South America",     color: "#E2C2FF"},
+  {key: "australiaoceania", label: "Australia & Oceania", color: "#6184D8"}
+];
+var continentColor = {};
+continents.forEach(function(c) { continentColor[c.key] = c.color; });
+
+var legendItem = d3.select("#legend").selectAll("li")
+    .data(continents)
+  .enter().append("li");
+legendItem.append("span")
+    .attr("class", "swatch")
+    .style("background-color", function(c) { return c.color; });
+legendItem.append("span")
+    .text(function(c) { return c.label; });
+
+// Load the dispute data once up front so hovering is instant.
+var midData = null;
+d3.csv(csvFile, function(error, data) {
+  if (error) throw error;
+  midData = data;
+});
 
 
 let myScale = d3.scaleLinear()
@@ -154,48 +183,12 @@ linkRect = linkRect
     .attr("height", function(d) {
       return 10; // Adjust the height as needed
     })
-    .style("fill", function(d){
+    .style("fill", function(d) { return continentColor[d.data.name.split('.')[1]]; });
 
-      const parts = d.data.name.split('.');
-      const desiredPart = parts[1];
-
-      if (desiredPart == "asia") {
-
-        return '#E4FF1A';
-
-      }
-
-      else if (desiredPart == "northamerica") {
-
-        return '#CB48B7';
-
-      }
-
-      else if (desiredPart == "europe") {
-
-      return '#F96E46';
-
-      }
-
-      else if (desiredPart == "africa") {
-
-      return '#03CEA4';
-
-      }
-
-      else if (desiredPart == "southamerica") {
-
-      return '#E2C2FF';
-      
-      }
-
-      else if (desiredPart == "australiaoceania") {
-
-      return '#6184D8';
-
-      }
-
-    }); 
+  // Crop the viewBox to the drawn content so the graph uses all available space
+  var box = svg.node().getBBox(), pad = 8;
+  d3.select("#edgeBundling svg").attr("viewBox",
+      [box.x - pad, box.y - pad, box.width + pad * 2, box.height + pad * 2].join(" "));
 });
 
 function mouseovered(d) {
@@ -222,12 +215,13 @@ function mouseovered(d) {
   var filteredData;
   var eventX, eventY;
 
-  // Capture event coordinates before starting the asynchronous operation
-  eventX = d3.event.pageX;
-  eventY = d3.event.pageY;
+  eventX = d3.event.clientX;
+  eventY = d3.event.clientY;
 
-  // Read the CSV file and filter the lines
-    d3.csv(csvFile, (data) => {
+  if (!midData) return;
+
+    {
+      const data = midData;
 
       // Filter for every conflict this specific state is involved in
       filteredData = data.filter(d => {
@@ -298,39 +292,7 @@ for (var i = 1; i <= 5; i++) {
       // Show tooltip
       const tooltip = d3.select("#tooltip");
 
-      if (desiredPart === "asia") {
-
-        tooltip.style("border-width", "8px");
-        tooltip.style("border-left-color", "#E4FF1A");
-        
-
-      } else if (desiredPart === "europe")  {
-
-        tooltip.style("border-width", "8px");
-        tooltip.style("border-left-color", "#F96E46");
-
-      } else if (desiredPart === "northamerica")  {
-
-        tooltip.style("border-width", "8px");
-        tooltip.style("border-left-color", "#CB48B7");
-
-      }
-      else if (desiredPart === "africa")  {
-
-        tooltip.style("border-width", "8px");
-        tooltip.style("border-left-color", "#03CEA4");
-
-      } else if (desiredPart === "southamerica")  {
-
-        tooltip.style("border-width", "8px");
-        tooltip.style("border-left-color", "#E2C2FF");
-
-      } else if (desiredPart === "australiaoceania")  {
-
-        tooltip.style("border-width", "8px");
-        tooltip.style("border-left-color", "#6184D8");
-
-      }
+      tooltip.style("border-left-color", continentColor[desiredPart]);
 
       const mainHeading = d.data.key;
       const headings = ["Total Conflicts:", "Originator of Conflict:", "Use of force:", "Ending in war:"];
@@ -349,10 +311,15 @@ for (var i = 1; i <= 5; i++) {
 
     tooltip.style("display", "block");
 
-      // Position tooltip near the mouse cursor
-      tooltip.style("left", (eventX + 10) + "px")
-            .style("top", (eventY - 10) + "px");
-    });
+      // Position tooltip near the cursor, flipping sides so it stays on screen
+      const tipNode = tooltip.node();
+      const tipW = tipNode.offsetWidth, tipH = tipNode.offsetHeight;
+      let left = eventX + 16, top = eventY - 10;
+      if (left + tipW > window.innerWidth - 8) left = eventX - tipW - 16;
+      if (top + tipH > window.innerHeight - 8) top = window.innerHeight - tipH - 8;
+      tooltip.style("left", Math.max(8, left) + "px")
+            .style("top", Math.max(8, top) + "px");
+    }
 
 }
 
@@ -417,4 +384,4 @@ function packageImports(nodes) {
 }
 
 </script>
-</body>
+</body></html>
