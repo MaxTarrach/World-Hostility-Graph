@@ -1,5 +1,7 @@
 # World Hostility Graph
 
+<img width="1440" height="696" alt="Screenshot 2026-10-04 at 12 09 40" src="https://github.com/user-attachments/assets/96f23388-e765-4e42-8777-e82c21023521" />
+
 **Live demo:** https://hierarchical-edge-bundling.vercel.app/
 
 An interactive hierarchical edge bundling diagram that shows which nations have been in militarized conflict with one another between 1816 and 2014. Countries are arranged around a circle and grouped by continent, conflicts are drawn as bundled lines between them, and a bar next to each country shows how many different countries it has clashed with. Hovering a country highlights its links and shows its statistics.
